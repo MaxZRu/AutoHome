@@ -81,7 +81,7 @@ Ists
 #include <SPI.h>
 #include <Controllino.h>  //3.0.7
 #include "ModbusRtu.h"
-#include "avto_home_pass.h"
+#include "auto_home_pass.h"
 
 #include <Ethernet.h>           // Ethernet library v2 is required
 #include <ModbusEthernet.h>     //ArduinoModbus 1.0.8 and modbus-esp8266 4.1.0  (https://github.com/emelianov/modbus-esp8266)
