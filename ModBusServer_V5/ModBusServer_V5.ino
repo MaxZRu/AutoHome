@@ -82,6 +82,15 @@ Ists
 #include <Controllino.h>  //3.0.7
 #include "ModbusRtu.h"
 #include "auto_home_pass.h"
+/*
+#define MQTT_CLIENT_ID         "MEGA_005"
+#define MQTT_CLIENT_USER       "XXXXXXX"
+#define MQTT_CLIENT_PASS       "XXXXXXX"
+#define MQTT_CLIENT_HOST       "XXXXXXX"
+#define MQTT_CLIENT_PORT       7498
+#define WORK_AREA               1  //1 - автодом, 2 - мира 6
+*/
+
 
 #include <Ethernet.h>           // Ethernet library v2 is required
 #include <ModbusEthernet.h>     //ArduinoModbus 1.0.8 and modbus-esp8266 4.1.0  (https://github.com/emelianov/modbus-esp8266)
