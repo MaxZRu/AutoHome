@@ -136,7 +136,7 @@ void setup_pin() {
   pinMode(CONTROLLINO_R12, OUTPUT);
   pinMode(CONTROLLINO_R13, OUTPUT);
   pinMode(CONTROLLINO_R14, OUTPUT);
-  pinMode(CONTROLLINO_R15, OUTPUT);
+  pinMode(CONTROLLINO_R15, OUTPUT); //Инвертор 220 Вольт через РЕЛЕ
 
 
   pinMode(CONTROLLINO_D0, OUTPUT);
@@ -692,7 +692,7 @@ void timer_sendMQTT(long delay_ms) {
     timer_long = millis();
     if (clientMQTT.connected()) {
       clientMQTT.publish("IVECO/WATER_LEVEL", String(round(analogRead(CONTROLLINO_A1) / 3.2)), true, 1);           //Уровень воды
-      clientMQTT.publish("IVECO/VOLTAGE", String(round(15.1 / 1024 * 10 * analogRead(CONTROLLINO_A0))), true, 1);  //Напряжение бортовой сети
+      clientMQTT.publish("IVECO/VOLTAGE", String(round(15.1 / 1024  * analogRead(CONTROLLINO_A0)),2), true, 1);  //Напряжение бортовой сети 12.0
       clientMQTT.publish("IVECO/PLC/A1", String(analogRead(CONTROLLINO_A1)), true, 1);                             //Уровень Воды
       clientMQTT.publish("IVECO/PLC/A2", String(analogRead(CONTROLLINO_A2)), true, 1);                             //Зажигание
       clientMQTT.publish("IVECO/PLC/A3", String(analogRead(CONTROLLINO_A3)), true, 1);                             //Задняя передача
@@ -707,11 +707,26 @@ void timer_sendMQTT_SOLAR(long delay_ms) {
   if (millis() - timer_long > delay_ms) {
     timer_long = millis();
 
+    /*
     if (clientMQTT.connected()) {
       for (int i = 0; i < 21; i++) {
         clientMQTT.publish("IVECO/SOLAR/" + String(i), String(ModbusSlaveRegisters_MPPT_Solar[i]), true, 1);  //Габариты
       }
     }
+    */
+
+    /* Публикуем только то что читаем ... */
+    if (clientMQTT.connected()) {
+         clientMQTT.publish("IVECO/SOLAR/0" , String(ModbusSlaveRegisters_MPPT_Solar[0] ), true, 1);  // Процент заряда Аккумулятора
+         clientMQTT.publish("IVECO/SOLAR/1" , String(ModbusSlaveRegisters_MPPT_Solar[1], 1 ), true, 1);  // Напряжение батареи 12.0
+         clientMQTT.publish("IVECO/SOLAR/5" , String(ModbusSlaveRegisters_MPPT_Solar[5]/100 , 2 ), true, 1);  // Ток нагрузки /100
+         clientMQTT.publish("IVECO/SOLAR/6" , String(ModbusSlaveRegisters_MPPT_Solar[6] ), true, 1);  // Мощность нагрузки Вт
+         clientMQTT.publish("IVECO/SOLAR/9" , String(ModbusSlaveRegisters_MPPT_Solar[9] ), true, 1);  // Мощность солнечных панелей  Вт
+
+    }
+    
+
+
   }
 }
 
@@ -815,6 +830,17 @@ String UDP_command(String &data) {
     mb.Hreg(4 - 1, 0);
     Result = "Выход ВЫКЛ";
   }
+
+  if (data == "220=0") {
+    digitalWrite(CONTROLLINO_R15, 0); //Выключаем 220 Вольт
+    Result = "220 ВЫКЛ";
+  }
+
+  if (data == "220=1") {
+    digitalWrite(CONTROLLINO_R15, 0); //Включаем 220 Вольт
+    Result = "220 ВКЛ";
+  }
+
 
   return Result;
 }
