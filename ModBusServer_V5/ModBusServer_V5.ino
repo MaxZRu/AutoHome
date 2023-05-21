@@ -143,9 +143,9 @@ void setup_pin() {
   pinMode(CONTROLLINO_D1, OUTPUT);
   pinMode(CONTROLLINO_D2, OUTPUT);
   pinMode(CONTROLLINO_D3, OUTPUT);
-  pinMode(CONTROLLINO_D4, OUTPUT);  // Свет
-  pinMode(CONTROLLINO_D5, OUTPUT);  // Свет
-  pinMode(CONTROLLINO_D6, OUTPUT);
+  pinMode(CONTROLLINO_D4, OUTPUT);  // Свет вход
+  pinMode(CONTROLLINO_D5, OUTPUT);  // Свет кухня
+  pinMode(CONTROLLINO_D6, OUTPUT);  // Свет салон
   pinMode(CONTROLLINO_D7, OUTPUT);
   pinMode(CONTROLLINO_D8, OUTPUT);
   pinMode(CONTROLLINO_D9, OUTPUT);
@@ -268,6 +268,9 @@ void connect_MQTT() {
 
     clientMQTT.subscribe("IVECO/LAMP_ENTER_ON", 1);
     clientMQTT.subscribe("IVECO/LAMP_ENTER_LIGHT", 1);
+
+    clientMQTT.subscribe("IVECO/LAMP_SALON_ON", 1);
+    clientMQTT.subscribe("IVECO/LAMP_SALON_LIGHT", 1);
     MQTT_CONNECT_COUNT = 0;
 
     //clientMQTT.subscribe("/R7");
@@ -298,6 +301,8 @@ void messageReceived(String &topic, String &payload) {
   static unsigned int LAMP_KITCHEN_LIGHT = 0;
   static unsigned int LAMP_ENTER_LIGHT = 0;
 
+  static unsigned int LAMP_SALON_ON = 0;
+  static unsigned int LAMP_SALON_LIGHT = 0;
 
 
   Serial.println("incoming: " + topic + " - " + payload);
@@ -383,6 +388,28 @@ void messageReceived(String &topic, String &payload) {
       analogWrite(CONTROLLINO_D4, mb.Hreg(4 - 1));  //#Hreg (404) => D4 PWM (4000гц)
     }
     Serial.println(mb.Hreg(4 - 1));
+  }
+
+
+  if (topic == "IVECO/LAMP_SALON_ON") {  //405
+    LAMP_SALON_ON = payload.toInt();
+
+    mb.Hreg(6 - 1, round(LAMP_SALON_ON * LAMP_SALON_LIGHT * 0.5));
+    if (payload.toInt() > 90) {
+      mb.Hreg(6 - 1, LAMP_SALON_ON * 255);
+      analogWrite(CONTROLLINO_D6, mb.Hreg(6 - 1));  //#Hreg (404) => D4 PWM (4000гц)
+    }
+    Serial.println(mb.Hreg(6 - 1));
+  }
+
+  if (topic == "IVECO/LAMP_SALON_LIGHT") {  //404
+    LAMP_SALON_LIGHT = payload.toInt();
+    mb.Hreg(6 - 1, round(LAMP_SALON_ON * LAMP_SALON_LIGHT * 0.5));
+    if (payload.toInt() > 90) {
+      mb.Hreg(6 - 1, LAMP_SALON_ON * 255);
+      analogWrite(CONTROLLINO_D6, mb.Hreg(6 - 1));  //#Hreg (404) => D4 PWM (4000гц)
+    }
+    Serial.println(mb.Hreg(6 - 1));
   }
 
   //    clientMQTT.subscribe("IVECO/LAMP_KITCHEN_LIGHT");
@@ -655,6 +682,7 @@ void timer_PWM(long delay_ms) {
 
     analogWrite(CONTROLLINO_D5, mb.Hreg(5 - 1));  //#Hreg (405) => D5 PWM (4000гц)
     analogWrite(CONTROLLINO_D4, mb.Hreg(4 - 1));  //#Hreg (404) => D4 PWM (4000гц)
+    analogWrite(CONTROLLINO_D6, mb.Hreg(6 - 1));  //#Hreg (404) => D4 PWM (4000гц)
   }
 }
 
@@ -692,7 +720,7 @@ void timer_sendMQTT(long delay_ms) {
     timer_long = millis();
     if (clientMQTT.connected()) {
       clientMQTT.publish("IVECO/WATER_LEVEL", String(round(analogRead(CONTROLLINO_A1) / 3.2)), true, 1);           //Уровень воды
-      clientMQTT.publish("IVECO/VOLTAGE", String(round(15.1 / 1024  * analogRead(CONTROLLINO_A0)),2), true, 1);  //Напряжение бортовой сети 12.0
+      clientMQTT.publish("IVECO/VOLTAGE", String((15.1 / 1024  * analogRead(CONTROLLINO_A0)),2), true, 1);  //Напряжение бортовой сети 12.0
       clientMQTT.publish("IVECO/PLC/A1", String(analogRead(CONTROLLINO_A1)), true, 1);                             //Уровень Воды
       clientMQTT.publish("IVECO/PLC/A2", String(analogRead(CONTROLLINO_A2)), true, 1);                             //Зажигание
       clientMQTT.publish("IVECO/PLC/A3", String(analogRead(CONTROLLINO_A3)), true, 1);                             //Задняя передача
@@ -718,8 +746,8 @@ void timer_sendMQTT_SOLAR(long delay_ms) {
     /* Публикуем только то что читаем ... */
     if (clientMQTT.connected()) {
          clientMQTT.publish("IVECO/SOLAR/0" , String(ModbusSlaveRegisters_MPPT_Solar[0] ), true, 1);  // Процент заряда Аккумулятора
-         clientMQTT.publish("IVECO/SOLAR/1" , String(ModbusSlaveRegisters_MPPT_Solar[1], 1 ), true, 1);  // Напряжение батареи 12.0
-         clientMQTT.publish("IVECO/SOLAR/5" , String(ModbusSlaveRegisters_MPPT_Solar[5]/100 , 2 ), true, 1);  // Ток нагрузки /100
+         clientMQTT.publish("IVECO/SOLAR/1" , String(float(ModbusSlaveRegisters_MPPT_Solar[1])/10,1), true, 1);  // Напряжение батареи 12.0
+         clientMQTT.publish("IVECO/SOLAR/5" , String(float(ModbusSlaveRegisters_MPPT_Solar[5])/100,2), true, 1);  // Ток нагрузки /100
          clientMQTT.publish("IVECO/SOLAR/6" , String(ModbusSlaveRegisters_MPPT_Solar[6] ), true, 1);  // Мощность нагрузки Вт
          clientMQTT.publish("IVECO/SOLAR/9" , String(ModbusSlaveRegisters_MPPT_Solar[9] ), true, 1);  // Мощность солнечных панелей  Вт
 
@@ -837,7 +865,7 @@ String UDP_command(String &data) {
   }
 
   if (data == "220=1") {
-    digitalWrite(CONTROLLINO_R15, 0); //Включаем 220 Вольт
+    digitalWrite(CONTROLLINO_R15, 1); //Включаем 220 Вольт
     Result = "220 ВКЛ";
   }
 
