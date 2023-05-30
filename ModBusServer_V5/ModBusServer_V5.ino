@@ -395,7 +395,7 @@ void messageReceived(String &topic, String &payload) {
     LAMP_SALON_ON = payload.toInt();
 
     mb.Hreg(6 - 1, round(LAMP_SALON_ON * LAMP_SALON_LIGHT * 0.5));
-    if (payload.toInt() > 90) {
+    if (LAMP_SALON_ON > 90) {
       mb.Hreg(6 - 1, LAMP_SALON_ON * 255);
       analogWrite(CONTROLLINO_D6, mb.Hreg(6 - 1));  //#Hreg (404) => D4 PWM (4000гц)
     }
